@@ -61,20 +61,13 @@ recall <- function(ypred, y){
 library(glmnet)
 require(doMC)
 registerDoMC(cores=3)
-
-lasso <- cv.glmnet(embed[training,], fb$attacks[training], 
-    family="binomial", alpha=1, nfolds=5, parallel=TRUE, intercept=TRUE,
-    type.measure="class")
-
-# computing predicted values
-preds <- predict(lasso, embed[test,], type="class")
 # confusion matrix
-table(preds, fb$attacks[test])
+# table(preds, fb$attacks[test])
 
 # performance metrics
-accuracy(preds, fb$attacks[test])
-precision(preds==1, fb$attacks[test]==1)
-recall(preds==1, fb$attacks[test]==1)
+# accuracy(preds, fb$attacks[test])
+# precision(preds==1, fb$attacks[test]==1)
+# recall(preds==1, fb$attacks[test]==1)
 #precision(preds==0, fb$attacks[test]==0)
 #recall(preds==0, fb$attacks[test]==0)
 
@@ -120,3 +113,23 @@ for(eta in tryEta){
         }
     }
 }
+
+cat("Best model has eta=",bestEta," and depth=", bestDepth, " : ",
+    bestAcc," accuracy.\n",sep="")
+
+# running best model
+rf <- xgboost(data = X[training,], 
+    label = fb$attacks[training], 
+        max.depth = bestDepth,
+    eta = bestEta, 
+    nthread = 4,
+    nround = 1000,
+        print_every_n=100L,
+    objective = "binary:logistic")
+
+preds <- predict(rf, X[test,])
+cat("\nAccuracy on test set=", round(accuracy(preds>.50, fb$attacks[test]),3))
+cat("\nPrecision(1) on test set=", round(precision(preds>.50, fb$attacks[test]),3))
+cat("\nRecall(1) on test set=", round(recall(preds>.50, fb$attacks[test]),3))
+# cat("\nPrecision(0) on test set=", round(precision(preds<.50, fb$attacks[test]==0),3))
+# cat("\nRecall(0) on test set=", round(recall(preds<.50, fb$attacks[test]==0),3))
