@@ -60,6 +60,7 @@ recall <- function(ypred, y){
 
 library(glmnet)
 require(doMC)
+registerDoMC(cores=3)
 
 lasso <- cv.glmnet(embed[training,], fb$attacks[training], 
     family="binomial", alpha=1, nfolds=5, parallel=TRUE, intercept=TRUE,
